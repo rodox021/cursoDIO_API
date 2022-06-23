@@ -30,7 +30,9 @@ namespace curso.api
         public void ConfigureServices(IServiceCollection services)
         {
 
-            services.AddControllers();
+            services.AddControllers()
+                .ConfigureApiBehaviorOptions(op => op.SuppressModelStateInvalidFilter = true); // desabilita os modelsStat Invalid
+                
             services.AddSwaggerGen( c =>
                 {
                     var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
