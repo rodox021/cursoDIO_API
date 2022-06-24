@@ -6,6 +6,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Text;
+using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace curso.api.Controllers
 {
@@ -13,6 +17,8 @@ namespace curso.api.Controllers
     [ApiController]
     public class UsuarioController : ControllerBase
     {
+        private object usuarioViewModelOutput;
+
         /// <summary>
         /// Este Serviço permite autenticar um usuário cadastrado e ativo.
         /// </summary>
@@ -28,12 +34,60 @@ namespace curso.api.Controllers
         [Route("logar")]
         public IActionResult Logar(LoginViewModelInput loginViewModelInput)
         {
-            if (!ModelState.IsValid)
+            var usuarioViewModelOutput =  new UsuarioViewModelOutput()
             {
-                return BadRequest(new ValidaCampoViewModelOutput(ModelState.SelectMany(msgs => msgs.Value.Errors).Select(s => s.ErrorMessage)));
-            }
-            return Ok(loginViewModelInput);
+                Codigo = 1,
+                Login = "Rodolfo",
+                Email = "rodolfo@gmail.com"
+            };
+            //if (!ModelState.IsValid)
+            //{
+            //    return BadRequest(new ValidaCampoViewModelOutput(ModelState.SelectMany(msgs => msgs.Value.Errors).Select(s => s.ErrorMessage)));
+            //}
+
+
+
+            //--------------------
+
+            var secret = Encoding.ASCII.GetBytes("RodolfolealBraga");//("MzfsT&d9gprP>!9$Es(X!5g@;ef!5sbk:jH\\2.}8ZP'qY#7");
+            var symmetricSecurityKey = new SymmetricSecurityKey(secret);
+            var securityTokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(new Claim[]
+                {
+                    new Claim(ClaimTypes.NameIdentifier, usuarioViewModelOutput.Codigo.ToString()),
+                    new Claim(ClaimTypes.Name, usuarioViewModelOutput.Login.ToString()),
+                    new Claim(ClaimTypes.Email, usuarioViewModelOutput.Email.ToString())
+                }),
+                Expires = DateTime.UtcNow.AddDays(1),
+                SigningCredentials = new SigningCredentials(symmetricSecurityKey, SecurityAlgorithms.HmacSha256Signature)
+            };
+            var jwtSecurityTokenHandler = new JwtSecurityTokenHandler();
+            var tokenGenerated = jwtSecurityTokenHandler.CreateToken(securityTokenDescriptor);
+            var token = jwtSecurityTokenHandler.WriteToken(tokenGenerated);
+
+            //-----------------
+
+
+
+            return Ok(new
+            { 
+                Token = token,
+                usuario = usuarioViewModelOutput
+            });
         }
+
+
+        /// <summary>
+        /// Este Serviço permite cadastrar usuario no banco de dados
+        /// </summary>
+        /// <param name="registroViewModelInput"></param>
+        /// <returns>Retornar Status Created e usuário cadastrado </returns>
+        /// 
+
+        [SwaggerResponse(statusCode: 200, description: "Registro Efetuado com Sucesso!", typeof(LoginViewModelInput))]
+        [SwaggerResponse(statusCode: 400, description: "Campos Obrigatórios", typeof(ValidaCampoViewModelOutput))]
+        [SwaggerResponse(statusCode: 500, description: "Erro Interno", typeof(ErrorGenericoViewModel))]
 
         [HttpPost]
         [Route("registrar")]
