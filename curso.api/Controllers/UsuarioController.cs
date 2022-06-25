@@ -102,6 +102,13 @@ namespace curso.api.Controllers
 
             CursoDbContext contexto = new CursoDbContext(options.Options);
 
+            var migracoesPendentes = contexto.Database.GetPendingMigrations();
+
+            if (migracoesPendentes.Count() >0)
+            {
+                contexto.Database.Migrate();
+            }
+
             var usuario = new Usuario() { 
                 Login = registroViewModelInput.Login,
                 Senha = registroViewModelInput.Senha,
