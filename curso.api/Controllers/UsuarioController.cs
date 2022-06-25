@@ -10,6 +10,9 @@ using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
+using curso.api.Infraestruture.Data;
+using Microsoft.EntityFrameworkCore;
+using curso.api.Business.Entities;
 
 namespace curso.api.Controllers
 {
@@ -93,6 +96,20 @@ namespace curso.api.Controllers
         [Route("registrar")]
         public IActionResult Registrar(RegistroViewModelInput registroViewModelInput)
         {
+
+            var options = new DbContextOptionsBuilder<CursoDbContext>();
+            options.UseSqlite("Data source = cusro.db");
+
+            CursoDbContext contexto = new CursoDbContext(options.Options);
+
+            var usuario = new Usuario() { 
+                Login = registroViewModelInput.Login,
+                Senha = registroViewModelInput.Senha,
+                Email = registroViewModelInput.Email
+            };
+            contexto.Usuario.Add(usuario);
+            contexto.SaveChanges();
+
             return Created("", registroViewModelInput);
         }
     }

@@ -24,6 +24,8 @@ namespace curso.api.Controllers
         [Route("")]
         public async Task<IActionResult> Post(CursoViewModelInput cursoViewModelInput)
         {
+
+
             var codigoUsuario = int.Parse(User.FindFirst(c => c.Type == ClaimTypes.NameIdentifier)?.Value);
             return Created("", cursoViewModelInput);
         }
@@ -39,9 +41,10 @@ namespace curso.api.Controllers
         public async Task<IActionResult> Get()
         {
             var cursos = new List<CursoViewModelOutput>();
-          //  var codigoUsuario = int.Parse(User.FindFirst(c => c.Type == ClaimTypes.NameIdentifier)?.Value);
+            //  var codigoUsuario = int.Parse(User.FindFirst(c => c.Type == ClaimTypes.NameIdentifier)?.Value);
 
-            cursos.Add(new CursoViewModelOutput() {
+            cursos.Add(new CursoViewModelOutput()
+            {
                 Login = "",
                 Descricao = "teste",
                 Nome = "teste"
