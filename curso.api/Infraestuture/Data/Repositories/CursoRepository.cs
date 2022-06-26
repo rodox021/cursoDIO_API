@@ -27,7 +27,9 @@ namespace curso.api.Infraestruture.Data.Repositories
 
         public IList<Curso> ObterPorUsuario(int codigoUsuario)
         {
-            return _contexto.Curso.Include(i => i.Usuario).Where(w => w.CodigoUsuario == codigoUsuario).ToList();
+            return _contexto.Curso
+                .Include(i => i.Usuario).Where(w => w.CodigoUsuario == codigoUsuario)
+                .ToList();
         }
     }
 }

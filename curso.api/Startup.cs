@@ -98,6 +98,7 @@ namespace curso.api
                 options.UseSqlite(Configuration.GetConnectionString("DefaultConnection"));
             });
             services.AddScoped<IUsuarioRepository, UsuarioRepository>();
+            services.AddScoped<ICursoRepository, CursoRepository>();
             services.AddScoped<IAuthenticationService, JwtService>();
 
 
