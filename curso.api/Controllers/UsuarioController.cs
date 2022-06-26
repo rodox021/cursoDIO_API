@@ -1,18 +1,16 @@
-﻿using curso.api.Models.Usuario;
+﻿using curso.api.Business.Entities;
+using curso.api.Business.Repositories;
+using curso.api.Configurations;
 using curso.api.Models;
+using curso.api.Models.Usuario;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 using Swashbuckle.AspNetCore.Annotations;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Text;
-using Microsoft.IdentityModel.Tokens;
-using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
-using curso.api.Infraestruture.Data;
-using Microsoft.EntityFrameworkCore;
-using curso.api.Business.Entities;
+using System.Security.Claims;
+using System.Text;
 
 namespace curso.api.Controllers
 {
@@ -20,7 +18,20 @@ namespace curso.api.Controllers
     [ApiController]
     public class UsuarioController : ControllerBase
     {
+
+
+        private readonly IUsuarioRepository _usuarioRepository;
+        private readonly IAuthenticationService _authenticationService;
         private object usuarioViewModelOutput;
+
+        public UsuarioController(
+            IUsuarioRepository usuarioRepository, 
+            IConfiguration configuration, 
+            IAuthenticationService authenticationService)
+        {
+            _usuarioRepository = usuarioRepository;
+            _authenticationService = authenticationService;
+        }
 
         /// <summary>
         /// Este Serviço permite autenticar um usuário cadastrado e ativo.
@@ -35,46 +46,29 @@ namespace curso.api.Controllers
 
         [HttpPost]
         [Route("logar")]
-        public IActionResult Logar(LoginViewModelInput loginViewModelInput)
+        public  IActionResult Logar(LoginViewModelInput loginViewModelInput)
         {
-            var usuarioViewModelOutput =  new UsuarioViewModelOutput()
+            var usuario = _usuarioRepository.ObterUsuarioAsync(loginViewModelInput.Login);
+
+            if (usuario == null)
+            {
+                return BadRequest("Houve um erro ao tentar acessar.");
+            }
+            var usuarioViewModelOutput = new UsuarioViewModelOutput()
             {
                 Codigo = 1,
                 Login = "Rodolfo",
                 Email = "rodolfo@gmail.com"
             };
-            //if (!ModelState.IsValid)
-            //{
-            //    return BadRequest(new ValidaCampoViewModelOutput(ModelState.SelectMany(msgs => msgs.Value.Errors).Select(s => s.ErrorMessage)));
-            //}
 
-
-
-            //--------------------
-
-            var secret = Encoding.ASCII.GetBytes("RodolfolealBraga");//("MzfsT&d9gprP>!9$Es(X!5g@;ef!5sbk:jH\\2.}8ZP'qY#7");
-            var symmetricSecurityKey = new SymmetricSecurityKey(secret);
-            var securityTokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity(new Claim[]
-                {
-                    new Claim(ClaimTypes.NameIdentifier, usuarioViewModelOutput.Codigo.ToString()),
-                    new Claim(ClaimTypes.Name, usuarioViewModelOutput.Login.ToString()),
-                    new Claim(ClaimTypes.Email, usuarioViewModelOutput.Email.ToString())
-                }),
-                Expires = DateTime.UtcNow.AddDays(1),
-                SigningCredentials = new SigningCredentials(symmetricSecurityKey, SecurityAlgorithms.HmacSha256Signature)
-            };
-            var jwtSecurityTokenHandler = new JwtSecurityTokenHandler();
-            var tokenGenerated = jwtSecurityTokenHandler.CreateToken(securityTokenDescriptor);
-            var token = jwtSecurityTokenHandler.WriteToken(tokenGenerated);
+            var token = _authenticationService.GerarToken(usuarioViewModelOutput);
 
             //-----------------
 
 
 
             return Ok(new
-            { 
+            {
                 Token = token,
                 usuario = usuarioViewModelOutput
             });
@@ -88,7 +82,7 @@ namespace curso.api.Controllers
         /// <returns>Retornar Status Created e usuário cadastrado </returns>
         /// 
 
-        [SwaggerResponse(statusCode: 200, description: "Registro Efetuado com Sucesso!", typeof(LoginViewModelInput))]
+        [SwaggerResponse(statusCode: 200, description: "Registro Efetuado com Sucesso!", typeof(RegistroViewModelInput))]
         [SwaggerResponse(statusCode: 400, description: "Campos Obrigatórios", typeof(ValidaCampoViewModelOutput))]
         [SwaggerResponse(statusCode: 500, description: "Erro Interno", typeof(ErrorGenericoViewModel))]
 
@@ -97,25 +91,16 @@ namespace curso.api.Controllers
         public IActionResult Registrar(RegistroViewModelInput registroViewModelInput)
         {
 
-            var options = new DbContextOptionsBuilder<CursoDbContext>();
-            options.UseSqlite("Data source = cusro.db");
-
-            CursoDbContext contexto = new CursoDbContext(options.Options);
-
-            var migracoesPendentes = contexto.Database.GetPendingMigrations();
-
-            if (migracoesPendentes.Count() >0)
+            var usuario = new Usuario()
             {
-                contexto.Database.Migrate();
-            }
-
-            var usuario = new Usuario() { 
                 Login = registroViewModelInput.Login,
                 Senha = registroViewModelInput.Senha,
                 Email = registroViewModelInput.Email
             };
-            contexto.Usuario.Add(usuario);
-            contexto.SaveChanges();
+            _usuarioRepository.Adicionar(usuario);
+            _usuarioRepository.Commit();
+
+
 
             return Created("", registroViewModelInput);
         }
